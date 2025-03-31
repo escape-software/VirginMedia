@@ -23,7 +23,7 @@ Open ProductSales solution in Visual Studio using the same network account that 
 
 In BlazorWebApp project modify the following config settings in appsettings.json:
 
-Change ProductSalesConnection connection string to set the Data Source to use the '\' where the ProductSales database has been created.
+Change ProductSalesConnection connection string to set the Data Source to include the Server name and DB Server name where the ProductSales database has been created.
 
 Note: I have used Integrated Security=True to use a Windows domain account. The account that is used to run BlazorWebApp in Visual Studio should have permission to connect to and interact with the ProductSales database.
 
@@ -33,19 +33,23 @@ Note: The ImportData folder needs sufficient file permissions to allow reading a
 
 Open Package Manager Console in Visual Studio.
 
-Change the Default Project to ProductSales.Infrastructure
+In the Console, change the Default Project to ProductSales.Infrastructure
 
 At the command prompt enter the Migrations command: update-database 20240719115455_Initial -context ProductSalesDbContext
 
-Note: Alternatively you can run the following SQL script directly on the ProductSales database to create the required supporting ProductSales DB tables. \ProductSales.Infrastructure\Scripts\ProductSalesCreation.sql
+Note: Alternatively you can run the following SQL script directly on the ProductSales database to create the required supporting ProductSales DB tables.
+\ProductSales.Infrastructure\Scripts\ProductSalesCreation.sql
 
-After Migrations has successfully updated the database (or the ProductSalesCreation script was executed successfully) run the following script on ProductSales DB to insert the default supporting data (countries, segments, discounts and products). \ProductSales.Infrastructure\Scripts\ProductSalesInsertData.sql
+After Migrations has successfully updated the database (or the ProductSalesCreation script was executed successfully) run the following script on ProductSales DB to insert the default supporting data (countries, segments, discounts and products).
+\ProductSales.Infrastructure\Scripts\ProductSalesInsertData.sql
+
+Set BlazorWebApp as the startup project in Visual Studio.
 
 The ProductSales solution should now be ready to run in Visual Studio.
 
 Running ProductSales
 --------------------
-After completing the installation process set BlazorWebApp as the startup project in Visual Studio and run that project using the https launch profile.
+After completing the installation process debug run BlazorWebApp (startup project) in Visual Studio using the https launch profile.
 
 Open a Browser window and enter the application URL of https://localhost:7228 to access the Blazor Web App.
 
@@ -53,7 +57,7 @@ Click on Import Data on the menu.
 
 Click on Choose File button in Import Product Sales Data panel.
 
-In the File Explorer dialog navigate to the \Projects\ProductSales folder and select the Data spreadsheet by clicking on Open button.
+In the File Explorer dialog navigate to the solution root folder and select the Data spreadsheet by clicking on Open button.
 
 The product sales data from the spreadsheet should appear in a grid on the Product Sales Items panel which includes valid data rows only.
 
