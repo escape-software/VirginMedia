@@ -1,0 +1,169 @@
+﻿@page "/countries/countryedit/{countryId:int?}"
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using ProductSales.Application.CQRS.Requests.Commands
+@using ProductSales.Application.Exceptions
+
+@inject ILogger<Country> Logger
+@inject NavigationManager NavigationManager
+
+<h3>@PageTitle</h3>
+
+<ErrorPanel isVisible="@showErrors" dictErrors="@dictValidatorMessages" errorMessage="@errorMessage" />
+<div class="row">
+    <div class="col-s-12 col-md-9">
+        <div class="card">
+            <EditForm Model="CountryVM" OnValidSubmit="SaveCountry" FormName="CountryEdit" id="countryEdit">
+                <div class="card-body">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <label for="countryId" class="col-sm-4 col-md-3 col-form-label">Country ID: </label>
+                        <div class="col-sm-8 col-md-6">
+                            <InputNumber disabled="true" @bind-Value="CountryVM!.CountryId" class="form-control" id="countryId" placeholder="New ID">
+                            </InputNumber>
+                            <ValidationMessage For="() => CountryVM!.CountryId" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="countryName" class="col-sm-4 col-md-3 col-form-label">Country Name: </label>
+                        <div class="col-sm-8 col-md-6">
+                            <InputText @bind-Value="CountryVM!.CountryName" class="form-control" id="countryName" placeholder="Country Name">
+                            </InputText>
+                            <ValidationMessage For="() => CountryVM!.CountryName" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="form-control btn btn-primary btn-sm">Save</button>
+                    <button type="reset" class="form-control btn btn-primary btn-sm">Reset</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : Country
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    [Parameter]
+    public int? countryId { get; set; }
+
+    [SupplyParameterFromForm]
+    public CountryVM? CountryVM { get; set; }
+
+    protected EditContext? countryContext;
+    protected ValidationMessageStore? validationMessages;
+
+    private string? PageTitle { get; set; }
+    private bool pageReady { get; set; }
+    private bool countrySaved { get; set; } = false;
+    private bool existingCountry { get; set; } = false;
+    private bool showErrors { get; set; } = false;
+    private Dictionary<string, string[]>? dictValidatorMessages { get; set; }
+    private string? errorMessage { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        countryId = countryId ?? 0;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        existingCountry = (countryId.HasValue && countryId.Value > 0) ? true : false;
+        PageTitle = existingCountry ? "Edit Country" : "Add Country";
+
+        if (!pageReady)
+        {
+            dictValidatorMessages = new();
+
+            CountryVM = new();
+            if (existingCountry)
+            {
+                try
+                {
+                    CountryGetByIdQueryResponse countryResponse = await Mediator.Send(new CountryGetByIdQueryRequest { CountryId = countryId.Value });
+                    if (countryResponse != null && countryResponse.Country != null)
+                    {
+                        CountryVM = ViewModelMapper.Map(countryResponse.Country, CountryVM);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, $"Country generated an error: {ex.Message}");
+                }
+            }
+
+            pageReady = true;
+        }
+
+        if (CountryVM != null)
+        {
+            countryContext = new EditContext(CountryVM);
+            validationMessages = new ValidationMessageStore(countryContext);
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task SaveCountry()
+    {
+        try
+        {
+            if (CountryVM != null)
+            {
+                CountryInsertUpdateCommandRequest request = new();
+
+                // Convert Country VM to CQRS command request.
+                request.Country = ViewModelMapper.Map(CountryVM, request.Country);
+
+                // Create or update country.
+                GenericResponse response = await Mediator.Send(request);
+                if (response.IsSuccess)
+                {
+                    NavigationManager.NavigateTo("/countries");
+                }
+                else
+                {
+                    throw new Exception(response.Message);
+                }
+            }
+            else
+            {
+                Logger.LogError("No country data in view model.");
+            }
+        }
+        catch (ValidatorsException ex)
+        {
+            Logger.LogError($"Validation errors when saving {(!existingCountry ? "new" : "existing")} country.");
+
+            dictValidatorMessages = new();
+            foreach (var item in ex.ValidatorErrors)
+            {
+                dictValidatorMessages.Add(item.Key, item.Value);
+            }
+            showErrors = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while attempting to save {(!existingCountry ? "new" : "existing")} country: {ex.Message}";
+            Logger.LogError(errorMessage);
+            showErrors = true;
+            StateHasChanged();
+        }
+    }
+}

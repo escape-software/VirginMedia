@@ -1,0 +1,62 @@
+﻿@if (isVisible)
+{
+    <div id="status-panel" class="row">
+        <div class="col-s-12 col-md-9">
+            @if (dictErrors?.Count > 0)
+            {
+                <div class="card">
+                    <div class="card-header alert alert-danger valid-error-header" aria-live="polite" aria-atomic="true" role="alert">Validation Errors</div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Field</th>
+                                    <th scope="col">Validation Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var errorProp in dictErrors)
+                                {
+                                    <tr>
+                                        <td>
+                                            <ul class="list-group">
+                                                <li class="list-group-item">@errorProp.Key</li>
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="list-group">
+                                                @foreach (var propErrorMessage in errorProp.Value)
+                                                {
+                                                    <li class="list-group-item">@propErrorMessage</li>
+                                                }
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card alert alert-danger" aria-live="polite" aria-atomic="true" role="alert">
+                    <div class="card-body">
+                        <h6>@errorMessage</h6>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool isVisible { get; set; }
+
+    [Parameter]
+    public Dictionary<string, string[]>? dictErrors { get; set; }
+
+    [Parameter]
+    public string? errorMessage { get; set; }
+}

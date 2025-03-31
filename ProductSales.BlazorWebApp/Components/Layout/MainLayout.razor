@@ -1,0 +1,58 @@
+﻿@inherits LayoutComponentBase
+@using ProductSales.BlazorWebApp.Exceptions
+
+<header>
+    <NavMenu />
+</header>
+
+<div class="page">
+    <main role="main" class="pt-2 pb-2">
+        <article class="content px-4">
+            <CustomErrorBoundary @ref="customErrorBoundary">
+                <ChildContent>
+                    <div id="mainLayout">
+                        @Body
+                    </div>
+                </ChildContent>
+                <ErrorContent Context="Exception">
+                    <div class="card alert bg-danger text-white alert-error alert-dismissable error-content">
+                        <div class="card-header row">
+                            <div class="col-11"><h4>An error occured!</h4></div>
+                            <div class="col-1"><button class="btn-close" data-bs-dismiss="alert" @onclick="(() => customErrorBoundary?.Recover())"></button></div>
+                        </div>
+                        <div class="card-body">
+                            <h5>@Exception.GetType()</h5>
+                            <p>@Exception.Message</p>
+                        </div>
+                    </div>
+                </ErrorContent>
+            </CustomErrorBoundary>
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : MainLayout
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    private CustomErrorBoundary? customErrorBoundary { get; set; }
+
+    protected override void OnInitialized()
+    {
+        customErrorBoundary = new CustomErrorBoundary();
+    }
+}

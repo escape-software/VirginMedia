@@ -1,0 +1,27 @@
+﻿@inject NavigationManager NavigationManager
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : RedirectToLogin
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            string returnUrl = Uri.EscapeDataString(NavigationManager.Uri);
+            NavigationManager.NavigateTo($"Account/Login?returnUrl={returnUrl}", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+        }
+    }
+}

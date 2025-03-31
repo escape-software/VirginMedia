@@ -1,0 +1,20 @@
+﻿@if (isVisible)
+{
+    <div id="status-panel" class="row">
+        <div class="col-s-12 col-md-9">
+            <div class="card alert bg-danger text-white alert-error error-content" aria-live="polite" aria-atomic="true" role="status">
+                <div class="card-body">
+                    <h6>@statusMessage</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool isVisible { get; set; }
+
+    [Parameter]
+    public string? statusMessage { get; set; }
+}

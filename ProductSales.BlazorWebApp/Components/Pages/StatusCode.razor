@@ -1,0 +1,39 @@
+﻿@page "/StatusCode/{statusCode:int?}"
+@inject ILogger<StatusCode> Logger
+
+<div class="row">
+    <div class="card alert bg-info text-white alert-info">
+        <div class="card-header row">
+            <div class="col-11"><h4>@statusMessage</h4></div>
+        </div>
+        <div class="card-body">
+            <p>Click <a href="/">here</a> to return to Home page.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : StatusCode
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    [Parameter]
+    public int? statusCode { get; set; }
+
+    private string statusMessage = "Request could not be processed.";
+
+    protected override void OnParametersSet()
+    {
+        if (statusCode == 404)
+        {
+            statusMessage = "The requested page does not exist!";
+        }
+    }
+}

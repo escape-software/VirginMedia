@@ -1,0 +1,26 @@
+﻿@using ProductSales.BlazorWebApp.Components.Pages.Account
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <div class="row">
+                <div class="card alert bg-info text-white alert-info">
+                    <div class="card-header row">
+                        <div class="col-11"><h4>The requested web page does not exist.</h4></div>
+                    </div>
+                    <div class="card-body">
+                        <p>Click <a href="/">here</a> to return to Home page.</p>
+                    </div>
+                </div>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

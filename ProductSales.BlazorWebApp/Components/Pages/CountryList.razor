@@ -1,0 +1,104 @@
+﻿@page "/countries"
+@attribute [AllowAnonymous]
+
+@using Microsoft.AspNetCore.Authorization
+@using ProductSales.BlazorWebApp.Components.Pages.Account
+@rendermode InteractiveServer
+@inject IConfiguration Configuration
+@inject ILogger<CountryList> Logger
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>@PageTitle</h3>
+
+<div class="container-fluid country-list">
+    <div class="row">
+        <div class="col-4 col-sm-3 col-md-3 col-lg-2">
+            <button class="form-control btn btn-sm btn-primary" @onclick="(() => this.EditCountry(0))">Add Country</button>
+        </div>
+    </div>
+    @if (CountryVMList?.Count > 0)
+    {
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Country Name</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var country in CountryVMList)
+                {
+                    <tr>
+                        <td><a href="/countries/countryedit/@country.CountryId">@country.CountryId</a></td>
+                        <td>@country.CountryName</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" @onclick="(() => this.EditCountry(country.CountryId))">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No Countries have been created.</p>
+    }
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : CountryList
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authStateTask { get; set; }
+
+    public string? PageTitle { get; set; }
+    public List<CountryVM>? CountryVMList { get; set; }
+    private int MaxListItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitle = "Country List";
+        MaxListItems = Configuration.GetSection("ComponentSettings:MaxListItems").Get<int>();
+
+        try
+        {
+            CountryGetAllQueryResponse countryResponse = await Mediator.Send(new CountryGetAllQueryRequest());
+
+            if (countryResponse != null && countryResponse.Countries?.Count() > 0)
+            {
+                // Determine max list items from appsettings.
+                var maxItems = (MaxListItems <= 0 || MaxListItems >= countryResponse.Countries.Count()) ? countryResponse.Countries.Count() : MaxListItems;
+
+                // Convert CountryDTO list to CountryVM list.
+                CountryVMList = ViewModelMapper.Map(countryResponse.Countries.Take(maxItems), CountryVMList);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, $"Country list generated an error: {ex.Message}");
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    /// <summary>
+    /// Create a new or edit an existing country.
+    /// </summary>
+    /// <param name="countryId"></param>
+    private void EditCountry(int countryId)
+    {
+        string navPath = countryId > 0 ? $"/countries/countryedit/{countryId}" : $"/countries/countryedit";
+        NavigationManager.NavigateTo(navPath);
+    }
+}

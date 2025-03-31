@@ -1,0 +1,50 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
+<header>
+    <AccountNavMenu />
+</header>
+<div class="page">
+    <main role="main" class="pt-2 pb-2">
+        <article class="content px-4">
+            <div id="accountLayout">
+                @if (HttpContext is null)
+                {
+                    <p>Loading...</p>
+                }
+                else
+                {
+                    @Body
+                }
+            </div>
+        </article>
+    </main>
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : AccountLayout
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+
+    protected override void OnParametersSet()
+    {
+        if (HttpContext is null)
+        {
+            // If this code runs, we're currently rendering in interactive mode, so there is no HttpContext.
+            // The identity pages need to set cookies, so they require an HttpContext. To achieve this we
+            // must transition back from interactive mode to a server-rendered page.
+            NavigationManager.Refresh(forceReload: true);
+        }
+    }
+}

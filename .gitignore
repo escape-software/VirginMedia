@@ -1,0 +1,10 @@
+.vs/
+ProductSales.Application/bin/
+ProductSales.BlazorWebApp/bin/
+ProductSales.Domain/bin/
+ProductSales.Infrastructure/bin/
+ProductSales.Application/obj/
+ProductSales.BlazorWebApp/obj/
+ProductSales.Domain/obj/
+ProductSales.Infrastructure/obj/
+ProductSales.BlazorWebApp/ImportData/

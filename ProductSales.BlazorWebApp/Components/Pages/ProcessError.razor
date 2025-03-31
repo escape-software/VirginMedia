@@ -1,0 +1,28 @@
+﻿@inject ILogger<ProcessError> Logger
+
+<CascadingValue Value="this">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : ProcessError
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    /* The component that generated the error can provide specific markup via the ChildContent RenderFragment. e.g. an error alert. */
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    public void LogError(Exception ex)
+    {
+        Logger.LogError("ProcessError.LogError: {Type} Message: {Message}",
+            ex.GetType(), ex.Message);
+    }
+}

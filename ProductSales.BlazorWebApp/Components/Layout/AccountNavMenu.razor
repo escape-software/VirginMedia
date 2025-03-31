@@ -1,0 +1,46 @@
+﻿@rendermode InteractiveServer
+
+<nav class="navbar bg-primary navbar-expand-sm navbar-toggleable-sm" data-bs-theme="light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Product Sales</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse d-sm-inline-flex justify-content-between" id="navbarNavDropdown">
+            @if (!isUserLoggedIn)
+            {
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Account/Login">Login</a>
+                    </li>
+                </ul>
+            }
+        </div>
+    </div>
+</nav>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : AccountNavMenu
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authStateTask { get; set; }
+
+    private bool isUserLoggedIn { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authStateTask != null)
+        {
+            isUserLoggedIn = (await authStateTask)?.User?.Identity?.IsAuthenticated ?? false;
+        }
+    }
+}

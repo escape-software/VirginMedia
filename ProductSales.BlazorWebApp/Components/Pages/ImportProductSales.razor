@@ -1,0 +1,502 @@
+﻿@page "/importdata"
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+
+@using System.Text
+@using Microsoft.AspNetCore.Authorization
+@using ProductSales.Application.CQRS.Requests.Commands
+@using ProductSales.Application.Exceptions
+@using ProductSales.BlazorWebApp.ExcelMapper
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Globalization
+@using global::ExcelMapper
+
+@inject IConfiguration Configuration
+@inject ILogger<ImportProductSales> Logger
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Import Data</PageTitle>
+
+<StatusPanel isVisible="@showStatus" statusMessage="@statusMessage" />
+<ErrorPanel isVisible="@showErrors" dictErrors="@dictValidatorMessages" errorMessage="@errorMessage" />
+<div class="row import-prod-sales">
+    <div class="col-s-12 col-md-9">
+        <div class="card ps-panel" aria-live="polite" aria-atomic="true" role="status">
+            <div class="card-header">
+                <h5 class="card-title">Import Product Sales Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="loadProductSalesFile" class="form-label">Select File: </label>
+                    <InputFile OnChange="LoadProductSalesAsync" id="loadProductSalesFile" class="form-control" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="productSalesDataBox">
+    <div class="row">
+        <div class="col-s-12 col-lg-10">
+            <div class="card ps-panel">
+                <div class="card-body">
+                    <div class="form-group prod-sales-grid">
+                        <label class="form-label">Product Sale Items:</label>
+                        @if (validDataList != null && validDataList.Count > 0)
+                        {
+                            <QuickGrid Items="@gridImportData" Pagination="@pagination" Class="table table-striped table-bordered table-sm">
+                                <TemplateColumn Title="Enabled" Align="Align.Center" Class="isEnabled" Sortable="false" Context="validTempColContext">
+                                    @if (@validTempColContext.IsEnabled)
+                                    {
+                                        <input name="EnabledSaleItems" type="checkbox" value="@validTempColContext.RowId" checked />
+                                    }
+                                    else
+                                    {
+                                        <input name="EnabledSaleItems" type="checkbox" value="@validTempColContext.RowId" />
+                                    }
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(p => p.RowId)" Align="Align.Left" Class="col-int" IsDefaultSortColumn InitialSortDirection="SortDirection.Ascending" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.SegmentName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.CountryName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.ProductName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.DiscountName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.UnitsSold)" Format="#,##0.00" Title="Units Sold" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.ManufacturingPrice)" Format="c" Title="Manu Price" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.SalePrice)" Format="c" Title="Sale Price" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.CreatedDate)" Format="dd-MM-yyyy" class="col-date" Title="Sale Date" Align="Align.Right" Sortable="false" />
+                            </QuickGrid>
+                            <Paginator State="@pagination" />
+                            <button class="btn btn-sm btn-success" id="btnSaveProductSalesData" disabled="@saveDisabled" @onclick="(() => this.SaveProductSalesData())">Save Product Sales</button>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info" role="alert">
+                                No product sale items.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-s-12 col-lg-10">
+            <div class="card ps-panel">
+                <div class="card-body">
+                    <div class="form-group prod-sales-grid">
+                        <label class="form-label">Invalid Product Sale Items:</label>
+                        @if (invalidDataList != null && invalidDataList.Count > 0)
+                        {
+
+                            <QuickGrid Items="@invGridImportData" Pagination="@invPagination" Class="table table-striped table-bordered table-sm">
+                                <PropertyColumn Property="@(p => p.RowId)" Align="Align.Left" Class="col-int" IsDefaultSortColumn InitialSortDirection="SortDirection.Ascending" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.SegmentName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.CountryName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.ProductName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.DiscountName)" Align="Align.Left" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.UnitsSold)" Format="#,##0.00" Title="Units Sold" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.ManufacturingPrice)" Format="c" Title="Manu Price" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.SalePrice)" Format="c" Title="Sale Price" Class="col-decimal" Align="Align.Right" Sortable="false" />
+                                <PropertyColumn Property="@(p => p.CreatedDate)" Format="dd-MM-yyyy" class="col-date" Title="Sale Date" Align="Align.Right" Sortable="false" />
+                            </QuickGrid>
+                            <Paginator State="@invPagination" />
+                        }
+                        else
+                        {
+                            <div class="alert alert-info" role="alert">
+                                No invalid product sale items.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    //-------------------------------------------------------------------------------------------------
+    // Name        : ImportProductSales
+    // Type        : Blazor component
+    // Author      : Kevin McGregor
+    // History     : 31-Mar-25 - Created
+    // Description :
+    // Copyright   : This is the property of Escape Software Solutions Limited and cannot be used,
+    //               copied or modified without the express permission of the company in
+    //               in writing. Copyright 2025 Escape Software Solutions Limited.
+    //-------------------------------------------------------------------------------------------------
+
+    private IBrowserFile? loadedFile { get; set; }
+    private long maxFileSize = 512000 * 4;
+    public List<ImportProductSalesVM>? validDataList;
+    public List<ImportProductSalesVM>? invalidDataList;
+    IQueryable<ImportProductSalesVM>? gridImportData;
+    IQueryable<ImportProductSalesVM>? invGridImportData;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    PaginationState invPagination = new PaginationState { ItemsPerPage = 10 };
+    private string statusPanelId = "status-panel";
+    private string statusMessageId = "status-message";
+    private string displayStatusFunc = "displayImportStatus";
+    private bool showStatus = false;
+    private string? statusMessage { get; set; }
+    private bool saveDisabled { get; set; }
+    private bool showErrors { get; set; } = false;
+    private Dictionary<string, string[]>? dictValidatorMessages { get; set; }
+    private string? errorMessage { get; set; }
+
+    List<CountryVM>? listCountries { get; set; }
+    List<DiscountVM>? listDiscounts { get; set; }
+    List<SegmentVM>? listSegments { get; set; }
+    List<ProductVM>? listProducts { get; set; }
+
+    /// <summary>
+    /// Initialise the import product sales page by getting lists of supporting data which will be used 
+    /// in the import data process.
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        showStatus = false;
+        saveDisabled = true;
+
+        // Set the max items per grid page.
+        int maxImportGridItems = Configuration.GetSection("ComponentSettings:MaxImportGridItems").Get<int>();
+        pagination = new PaginationState { ItemsPerPage = maxImportGridItems };
+
+        try
+        {
+            dictValidatorMessages = new();
+
+            CountryGetAllQueryResponse countryResponse = await Mediator.Send(new CountryGetAllQueryRequest());
+            if (countryResponse?.Countries?.Count() > 0)
+            {
+                // Convert Country entity list to CountryVM list.
+                listCountries = ViewModelMapper.Map(countryResponse.Countries, listCountries);
+            }
+            else
+            {
+                Logger.LogError($"Could not obtain list of countries.");
+            }
+
+            SegmentGetAllQueryResponse segmentResponse = await Mediator.Send(new SegmentGetAllQueryRequest());
+            if (segmentResponse?.Segments?.Count() > 0)
+            {
+                // Convert Segment entity list to SegmentVM list.
+                listSegments = ViewModelMapper.Map(segmentResponse.Segments, listSegments);
+            }
+            else
+            {
+                Logger.LogError($"Could not obtain list of segments.");
+            }
+
+            DiscountGetAllQueryResponse discountResponse = await Mediator.Send(new DiscountGetAllQueryRequest());
+            if (discountResponse?.Discounts?.Count() > 0)
+            {
+                // Convert Discount entity list to DiscountVM list.
+                listDiscounts = ViewModelMapper.Map(discountResponse.Discounts, listDiscounts);
+            }
+            else
+            {
+                Logger.LogError($"Could not obtain list of discounts.");
+            }
+
+            ProductGetAllQueryResponse productResponse = await Mediator.Send(new ProductGetAllQueryRequest());
+            if (productResponse?.Products?.Count() > 0)
+            {
+                // Convert Product entity list to ProductVM list.
+                listProducts = ViewModelMapper.Map(productResponse.Products, listProducts);
+            }
+            else
+            {
+                Logger.LogError($"Could not obtain list of products.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, $"An error occurred attempting to obtain lists of supporting data: {ex.Message}");
+            showStatus = true;
+            statusMessage = "Could not get lists of country, discount, segment and/or product.";
+        }
+
+        base.OnInitialized();
+    }
+
+    /// <summary>
+    /// When an import data file is selected to upload, get the file details before importing the file data.
+    /// </summary>
+    /// <param name="e"></param>
+    private async void LoadProductSalesAsync(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            if (e.FileCount <= 0 || e.File == null)
+            {
+                Logger.LogError("Could not import product sales data.");
+                return;
+            }
+            else if (!e.File.ContentType.ToLower().Contains("spreadsheet"))
+            {
+                Logger.LogError($"An import file was chosen of an invalid file type: {e.File.ContentType}.");
+                return;
+            }
+            else if (e.File.Size <= 0)
+            {
+                Logger.LogError("An import file was chosen of an invalid file type: {e.File.ContentType}.");
+                return;
+            }
+
+            string? filePath = Configuration.GetSection("ComponentSettings:ImportFilePath").Get<string>();
+            if (string.IsNullOrEmpty(filePath))
+            {
+                Logger.LogError("Could obtain import data file path from config.");
+                return;
+            }
+
+            var fileName = $"ImportData{DateTime.Now.ToString("ddMMyyyyHHmmss")}.xlsx";
+            var fullFilePath = Path.Combine(filePath, fileName);
+
+            loadedFile = e.File;
+
+            await using FileStream fs = new(fullFilePath, FileMode.Create);
+            await e.File.OpenReadStream(maxFileSize).CopyToAsync(fs);
+            fs.Close();
+            fs.Dispose();
+
+            Logger.LogInformation($"Unsafe Filename: {e.File.Name} File saved: {fileName}");
+
+            await ImportProductSalesData(fullFilePath);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, $"Importing product sales data generated an error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Import data from uploaded spreadsheet file and display in web page.
+    /// </summary>
+    /// <param name="importFilePath"></param>
+    /// <returns></returns>
+    private async Task<bool> ImportProductSalesData(string importFilePath)
+    {
+        bool importSuccess = false;
+        validDataList = new List<ImportProductSalesVM>();
+        invalidDataList = new List<ImportProductSalesVM>();
+
+        if (string.IsNullOrWhiteSpace(importFilePath))
+        {
+            Logger.LogError("Data import filepath was not provided.");
+        }
+
+        if (!File.Exists(importFilePath))
+        {
+            Logger.LogError($"Data import file does not exist at the given filepath ({importFilePath}). Cannot open data import spreadsheet.");
+        }
+
+        try
+        {
+            // Required for .NET compatibility with ExcelImporter.
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            await using FileStream fs = File.Open(importFilePath, FileMode.Open, FileAccess.Read);
+
+            using (var reader = new ExcelImporter(fs))
+            {
+                // Configure the import reader to ignore blank rows and to use a mapping class to map 
+                // spreadsheet cells onto ImportProductSalesVM class.
+                reader.Configuration.RegisterClassMap<ImportProductSalesMap>();
+                reader.Configuration.SkipBlankLines = true;
+
+                ExcelSheet? worksheet;
+                reader.TryReadSheet(out worksheet);
+
+                if (worksheet != null)
+                {
+                    // Read spreadsheet rows and map column values onto ImportProductSalesVM class and add to list.
+                    List<ImportProductSalesVM> importList = worksheet.ReadRows<ImportProductSalesVM>().ToList<ImportProductSalesVM>();
+
+                    if (importList != null && importList.Count > 0)
+                    {
+                        int rowId = 1;
+                        int maxImportDataItems = Configuration.GetSection("ComponentSettings:MaxImportDataItems").Get<int>();
+
+                        // The reader only ignores blank rows and not any rows with at least one empty or unreadable cell.
+                        // Remove any imported rows, with at least one empty or unconvertable cell, to an invalid list.
+                        foreach (var item in importList.Take(maxImportDataItems))
+                        {
+                            DateOnly minCreatedDate = new DateOnly(1900, 1, 1);
+                            int? supDataId;
+                            rowId += 1;
+                            item.RowId = rowId;
+                            item.IsEnabled = false;
+                            item.CreatedDate = item.SaleDate != null ? ConvertToDateTime(item.SaleDate) : minCreatedDate;
+
+                            if (!string.IsNullOrWhiteSpace(item.CountryName) && listCountries?.Count > 0)
+                            {
+                                supDataId = listCountries?.Find(x => x.CountryName.ToLower().Contains(item.CountryName.Trim().ToLower()))?.CountryId;
+                                item.CountryId = supDataId.HasValue ? supDataId.Value : 0;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(item.SegmentName) && listSegments != null)
+                            {
+                                supDataId = listSegments?.Find(x => x.SegmentName.ToLower().Contains(item.SegmentName.Trim().ToLower()))?.SegmentId;
+                                item.SegmentId = supDataId.HasValue ? supDataId.Value : 0;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(item.ProductName) && listProducts != null)
+                            {
+                                supDataId = listProducts?.Find(x => x.ProductName.ToLower().Contains(item.ProductName.Trim().ToLower()))?.ProductId;
+                                item.ProductId = supDataId.HasValue ? supDataId.Value : 0;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(item.DiscountName) && listDiscounts != null)
+                            {
+                                supDataId = listDiscounts?.Find(x => x.DiscountName.ToLower().Contains(item.DiscountName.Trim().ToLower()))?.DiscountId;
+                                item.DiscountId = supDataId.HasValue ? supDataId.Value : 0;
+                            }
+
+                            if ((item.SegmentId > 0) && (item.CountryId > 0) && (item.ProductId > 0) && (item.DiscountId > 0) 
+                            && (item.ManufacturingPrice > 0) && (item.SalePrice > 0) && (item.UnitsSold > 0) && (item.CreatedDate > minCreatedDate))
+                            {
+                                item.IsEnabled = true;
+                                validDataList.Add(item);
+                            }
+                            else
+                            {
+                                invalidDataList.Add(item);
+                            }
+                        }
+
+                        if (invalidDataList?.Count > 0)
+                        {
+                            Logger.LogWarning($"Total invalid product sale items: {invalidDataList.Count}.");
+                        }
+                    }
+                }
+            }
+
+            gridImportData = validDataList.AsQueryable();
+            invGridImportData = invalidDataList.AsQueryable();
+            saveDisabled = (validDataList != null && validDataList.Count() > 0) ? false: true;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.ToLower().Contains("cannot access"))
+            {
+                Logger.LogError($"Could not read from the data import spreadsheet because it is currently being used by another process: {ex.Message}");
+            }
+            else
+            {
+                Logger.LogError($"Could not read from the data import spreadsheet because of the following error: {ex.Message}");
+            }
+        }
+
+        return importSuccess;
+    }
+
+    /// <summary>
+    /// Create a new ProductSaleSummary in database for each valid import product sales data item.
+    /// </summary>
+    /// <returns></returns>
+    private async Task SaveProductSalesData()
+    {
+        showStatus = false;
+        showErrors = false;
+        int itemCount = 0;
+        int currRowId = 0;
+
+        try
+        {
+            if (validDataList != null && validDataList.Count > 0)
+            {
+                // Get all ImportProductSales VM which have been enabled for saving to database.
+                IEnumerable<ImportProductSalesVM>? enabledItems = validDataList.Where(p => p.IsEnabled);
+
+                if (enabledItems?.Count() > 0)
+                {
+                    foreach (var item in enabledItems)
+                    {
+                        itemCount += 1;
+                        currRowId = item.RowId;
+
+                        ProductSaleSummaryInsertUpdateCommandRequest request = new();
+
+                        // Convert ImportProductSales VM to ProductSaleSummary DTO.
+                        request.ProductSaleSummary = ViewModelMapper.Map(item, request.ProductSaleSummary);
+
+                        // Create new ProductSaleSummary from import data item.
+                        GenericResponse response = await Mediator.Send(request);
+                        item.IsImported = response.IsSuccess;
+
+                        if (!response.IsSuccess)
+                        {
+                            Logger.LogError($"An error occurred while attempting to save new ProductSaleSummary entity for import rowID[{item.RowId}]: {response.Message}");
+                            showErrors = true;
+                            errorMessage = $"Could not save new ProductSaleSummary entity for import rowID[{item.RowId}].";
+                            break;
+                        }
+                    }
+                }
+
+                if (!showErrors)
+                {
+                    showStatus = true;
+                    statusMessage = $"Successfully created {itemCount} new Product Sale items from imported data.";
+                    Logger.LogInformation(statusMessage);
+                }
+            }
+            else
+            {
+                showStatus = true;
+                statusMessage = "No valid imported product sale data to save.";
+                Logger.LogWarning(statusMessage);
+            }
+        }
+        catch (ValidatorsException ex)
+        {
+            statusMessage = $"Could not save new ProductSaleSummary item with Row ID #{currRowId}: {ex.Message}";
+            Logger.LogError(statusMessage);
+            showStatus = true;
+
+            dictValidatorMessages = new();
+            foreach (var item in ex.ValidatorErrors)
+            {
+                dictValidatorMessages.Add(item.Key, item.Value);
+            }
+            showErrors = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save new ProductSaleSummary item with Row ID #{currRowId} due to error: {ex.Message}";
+            Logger.LogError(errorMessage);
+            showErrors = true;
+        }
+
+        saveDisabled = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// A simple conversion of a US datetime string to UK datetime.
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
+    private DateOnly ConvertToDateTime(string s)
+    {
+        DateOnly result = new DateOnly(1900, 01, 01);
+        s = s.Trim();
+
+        if (!string.IsNullOrWhiteSpace(s))
+        {
+            try
+            {
+                string temp = $"{s.Substring(3, 2)}/{s.Substring(0, 2)}/{s.Substring(6, 4)}";
+                result = DateOnly.ParseExact(temp, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+            }
+            catch { }
+        }
+        return result;
+    }
+}
