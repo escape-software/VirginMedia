@@ -23,7 +23,7 @@ Open ProductSales solution in Visual Studio using the same network account that 
 
 In BlazorWebApp project modify the following config settings in appsettings.json:
 
-Change ProductSalesConnection connection string to set the Data Source to include the Server name and DB Server name where the ProductSales database has been created.
+Change ProductSalesConnection connection string to set the Data Source to use the correct DB Server name instance where the ProductSales database has been created.
 
 Note: I have used Integrated Security=True to use a Windows domain account. The account that is used to run BlazorWebApp in Visual Studio should have permission to connect to and interact with the ProductSales database.
 
