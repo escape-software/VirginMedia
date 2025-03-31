@@ -15,7 +15,7 @@ Lastly authentication and authorization was previously included to control acces
 
 Installation
 ------------
-Extract all files from the zip file to a target folder. e.g. D:\Projects\ProductSales
+Extract all files from the zip file to a target root folder. e.g. D:\Projects\ProductSales
 
 Create a new empty ProductSales database on your chosen SQL Server database server.
 
