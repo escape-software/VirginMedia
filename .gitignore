@@ -7,4 +7,5 @@ ProductSales.Application/obj/
 ProductSales.BlazorWebApp/obj/
 ProductSales.Domain/obj/
 ProductSales.Infrastructure/obj/
-ProductSales.BlazorWebApp/ImportData/
+ProductSales.BlazorWebApp/ImportData/*
+!ProductSales.BlazorWebApp/ImportData/README.*
